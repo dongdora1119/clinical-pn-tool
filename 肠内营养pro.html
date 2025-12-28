@@ -1,0 +1,620 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>临床 PN 智能工作站 (Ultimate Tech Edition)</title>
+    <style>
+        :root {
+            /* 左侧亮色主题 */
+            --light-bg: #f4f6f9;
+            --light-card: #ffffff;
+            --primary: #0056b3;
+            --text-main: #333;
+            
+            /* 右侧暗色科技主题 (HUD Colors) */
+            --dark-bg: #111827;       /* 深空黑 */
+            --dark-card: #1f2937;     /* 模块底色 */
+            --neon-green: #00e676;    /* 目标色 - 荧光绿 */
+            --neon-red: #ff1744;      /* 实际色 - 荧光红 */
+            --neon-blue: #00e5ff;     /* 糖 - 赛博蓝 */
+            --neon-pink: #f50057;     /* 脂 - 霓虹粉 */
+            --neon-yellow: #ffea00;   /* 氨基酸 - 柠檬黄 */
+            --neon-teal: #1de9b6;     /* 电解质 - 青色 */
+            
+            --sidebar-width: 440px;   /* 加宽一点给大图表 */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; 
+            background-color: var(--light-bg); color: var(--text-main);
+            height: 100vh; overflow: hidden; /* 桌面端全屏应用感 */
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr var(--sidebar-width);
+            height: 100vh;
+        }
+
+        /* ================= 
+           左侧：操作控制台 (Light Mode)
+           ================= */
+        .left-panel {
+            padding: 30px;
+            overflow-y: auto;
+            background: #f4f7fa;
+        }
+
+        .header-box { margin-bottom: 25px; border-left: 5px solid var(--primary); padding-left: 15px; }
+        .header-box h1 { margin: 0; font-size: 1.8em; color: #2c3e50; }
+        .header-box small { color: #666; font-size: 0.9em; letter-spacing: 1px; }
+
+        /* 卡片通用 */
+        .card {
+            background: var(--light-card); padding: 20px; border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 20px; border: 1px solid #e1e4e8;
+        }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #eee; }
+        .card-title { font-weight: 700; color: #374151; font-size: 1.1em; display: flex; align-items: center; gap: 8px; }
+        .step-badge { background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8em; }
+
+        /* 输入控件 */
+        .input-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .input-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #64748b; font-size: 0.85em; }
+        .input-group input, .input-group select { 
+            width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; 
+            font-size: 0.95em; transition: 0.3s; box-sizing: border-box; 
+        }
+        .input-group input:focus, .input-group select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(0,86,179,0.1); }
+
+        .btn-action {
+            width: 100%; padding: 12px; margin-top: 15px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); transition: transform 0.2s;
+        }
+        .btn-action:hover { transform: translateY(-2px); }
+
+        /* 药品列表 */
+        .drug-category { font-size: 0.85em; font-weight: 800; color: #94a3b8; margin: 15px 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .drug-row { 
+            display: grid; grid-template-columns: 2fr 100px 40px 30px; gap: 10px; 
+            align-items: center; margin-bottom: 8px; padding: 8px; 
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+        }
+        .drug-row input { text-align: center; font-weight: bold; color: var(--primary); border: 1px solid #ddd; padding: 6px; border-radius: 6px; width: 100%; box-sizing: border-box;}
+        .btn-add { width: 100%; padding: 8px; border: 1px dashed #cbd5e1; background: #fff; color: #64748b; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .btn-add:hover { border-color: var(--primary); color: var(--primary); background: #f0f9ff; }
+
+        /* ================= 
+           右侧：数据可视化 (Dark Tech Mode)
+           ================= */
+        .right-panel {
+            background-color: var(--dark-bg);
+            color: #e5e7eb;
+            padding: 30px 20px;
+            overflow-y: auto;
+            border-left: 1px solid #374151;
+            display: flex; flex-direction: column; gap: 20px;
+        }
+
+        /* 1. 双环仪表盘容器 */
+        .monitor-card {
+            background: var(--dark-card); border-radius: 16px; padding: 20px;
+            border: 1px solid #374151; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        .monitor-title { font-size: 0.9em; color: #9ca3af; margin-bottom: 15px; font-weight: 600; letter-spacing: 0.5px; display: flex; justify-content: space-between;}
+        
+        .gauges-container { display: flex; justify-content: space-around; margin-bottom: 20px; }
+        
+        /* 核心：双层甜甜圈 */
+        .gauge-wrapper {
+            position: relative; width: 140px; height: 140px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        /* 外圈：目标 (Green) */
+        .ring-target {
+            position: absolute; width: 100%; height: 100%; border-radius: 50%;
+            /* 只有边框，或者半透明填充 */
+            border: 6px solid #374151; /* 默认底色 */
+            box-sizing: border-box;
+        }
+        /* 实际进度的绿色外圈 - 静态显示目标为100%参照? 
+           User request: "Outer circle prompts target amount (Green)" */
+        .ring-target-active {
+            position: absolute; width: 100%; height: 100%; border-radius: 50%;
+            border: 4px dashed var(--neon-green); /* 虚线表示目标范围 */
+            box-sizing: border-box; opacity: 0.6;
+            animation: spin 60s linear infinite; /* 缓慢旋转增加科技感 */
+        }
+
+        /* 内圈：实际 (Red) - 动态填充 */
+        .ring-actual-fill {
+            position: absolute; width: 80%; height: 80%; border-radius: 50%;
+            background: conic-gradient(var(--neon-red) var(--p-actual), transparent 0);
+            /* 中间挖空形成甜甜圈 */
+            mask: radial-gradient(transparent 62%, black 63%);
+            -webkit-mask: radial-gradient(transparent 62%, black 63%);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: rotate(-180deg); /* 从底部开始填充，或从顶部 */
+        }
+        /* 中间文字 */
+        .gauge-data { position: absolute; text-align: center; z-index: 10; }
+        .gauge-val { display: block; font-size: 1.4em; font-weight: 800; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        .gauge-label { display: block; font-size: 0.7em; color: #9ca3af; text-transform: uppercase; margin-top: 2px;}
+        .gauge-sub { display: block; font-size: 0.65em; color: var(--neon-green); margin-top: 2px; }
+
+        /* 2. 糖脂比条形图 (改为圆环或条形) */
+        .ratio-bar-container { margin-top: 20px; background: #111827; padding: 12px; border-radius: 10px; }
+        .ratio-header { display: flex; justify-content: space-between; font-size: 0.8em; color: #d1d5db; margin-bottom: 8px; }
+        .ratio-track { height: 12px; background: #374151; border-radius: 6px; overflow: hidden; display: flex; }
+        .ratio-glc { height: 100%; background: var(--neon-blue); box-shadow: 0 0 8px var(--neon-blue); transition: width 0.5s; }
+        .ratio-lip { height: 100%; background: var(--neon-pink); box-shadow: 0 0 8px var(--neon-pink); transition: width 0.5s; }
+
+        /* 3. 全成分大渲染盘 */
+        .disc-container {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 10px 0;
+        }
+        .big-disc {
+            width: 180px; height: 180px; border-radius: 50%;
+            background: conic-gradient(
+                var(--neon-blue) 0% var(--d-glc), 
+                var(--neon-pink) var(--d-glc) var(--d-lip),
+                var(--neon-yellow) var(--d-lip) var(--d-aa),
+                var(--neon-teal) var(--d-aa) 100%
+            );
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            border: 4px solid var(--dark-card);
+        }
+        /* 中间黑洞 */
+        .big-disc::after {
+            content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 100px; height: 100px; background: var(--dark-card); border-radius: 50%;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        /* 浮动在中间的字 */
+        .disc-center-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5;
+            text-align: center;
+        }
+
+        /* 图例 */
+        .legend-grid { 
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; width: 100%; margin-top: 15px; 
+            background: #111827; padding: 10px; border-radius: 8px;
+        }
+        .legend-item { text-align: center; font-size: 0.7em; color: #9ca3af; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+
+        /* 4. 底部 HUD Tips */
+        .hud-tips {
+            background: rgba(17, 24, 39, 0.95); border: 1px solid #00e5ff;
+            border-radius: 8px; overflow: hidden; position: relative;
+        }
+        /* 装饰角标 */
+        .hud-tips::before { content: ""; position: absolute; top: 0; left: 0; width: 10px; height: 10px; border-top: 2px solid #00e5ff; border-left: 2px solid #00e5ff; }
+        .hud-tips::after { content: ""; position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-bottom: 2px solid #00e5ff; border-right: 2px solid #00e5ff; }
+
+        .hud-tabs { display: flex; border-bottom: 1px solid #374151; background: rgba(0, 229, 255, 0.05); }
+        .hud-tab {
+            flex: 1; text-align: center; padding: 10px 0; font-size: 0.75em; color: #00e5ff; cursor: pointer;
+            transition: 0.3s; opacity: 0.6;
+        }
+        .hud-tab.active { opacity: 1; background: rgba(0, 229, 255, 0.1); border-bottom: 2px solid #00e5ff; font-weight: bold; }
+        
+        .hud-content { padding: 15px; font-size: 0.8em; line-height: 1.6; color: #d1d5db; min-height: 120px; }
+        .hud-content h4 { color: var(--neon-yellow); margin: 0 0 5px 0; text-transform: uppercase; }
+        .hud-content ul { padding-left: 15px; margin: 0; }
+        .hud-content li { margin-bottom: 4px; }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        /* 移动端适配 */
+        @media (max-width: 900px) {
+            .app-container { grid-template-columns: 1fr; height: auto; overflow: visible; }
+            .right-panel { border-left: none; border-top: 1px solid #374151; height: auto;}
+            body { overflow: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <div class="left-panel">
+        <div class="header-box">
+            <h1>CLINICAL PN</h1>
+            <small>智能肠外营养处方工作站 PRO</small>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><span class="step-badge">1</span> 设定目标 (Target)</div>
+            </div>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>体重 (kg)</label>
+                    <input type="number" id="in-weight" value="60" oninput="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>氨基酸 (g/kg)</label>
+                    <select id="in-aa-factor" onchange="calculateAll()">
+                        <option value="1.0">1.0 (基础)</option>
+                        <option value="1.2" selected>1.2 (术后)</option>
+                        <option value="1.5">1.5 (重症)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>糖脂比 (NPC)</label>
+                    <select id="in-gl-ratio" onchange="calculateAll()">
+                        <option value="50">50 : 50</option>
+                        <option value="60" selected>60 : 40</option>
+                        <option value="70">70 : 30</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn-action" onclick="autoGenerate()">⚡ 智能生成处方 (Auto Generate)</button>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><span class="step-badge">2</span> 处方明细 (Drug List)</div>
+                <small onclick="resetDrugs()" style="cursor:pointer; color:#ef4444; font-weight:bold;">↺ 清空</small>
+            </div>
+            <div id="drug-container"></div>
+            </div>
+    </div>
+
+    <div class="right-panel">
+        
+        <div class="monitor-card">
+            <div class="monitor-title">
+                <span>实时达标分析 (REAL-TIME ANALYSIS)</span>
+                <span style="font-size:0.8em; opacity:0.7">● Live</span>
+            </div>
+            
+            <div class="gauges-container">
+                <div class="gauge-wrapper">
+                    <div class="ring-target-active"></div>
+                    <div class="ring-actual-fill" id="ring-tee" style="--p-actual:0%;"></div>
+                    <div class="gauge-data">
+                        <span class="gauge-val" id="val-tee-act">0</span>
+                        <span class="gauge-label">kcal</span>
+                        <span class="gauge-sub">目标: <span id="val-tee-target">0</span></span>
+                    </div>
+                </div>
+                
+                <div class="gauge-wrapper">
+                    <div class="ring-target-active" style="animation-direction: reverse;"></div>
+                    <div class="ring-actual-fill" id="ring-aa" style="--p-actual:0%;"></div>
+                    <div class="gauge-data">
+                        <span class="gauge-val" id="val-aa-act">0</span>
+                        <span class="gauge-label">g Protein</span>
+                        <span class="gauge-sub">目标: <span id="val-aa-target">0</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ratio-bar-container">
+                <div class="ratio-header">
+                    <span>糖脂比 (NPC Ratio)</span>
+                    <span id="txt-ratio-val" style="color:#fff; font-weight:bold;">0 : 0</span>
+                </div>
+                <div class="ratio-track">
+                    <div class="ratio-glc" id="bar-glc" style="width:50%"></div>
+                    <div class="ratio-lip" id="bar-lip" style="width:50%"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.6em; color:#6b7280; margin-top:4px;">
+                    <span style="color:var(--neon-blue)">● 葡萄糖 (GLU)</span>
+                    <span style="color:var(--neon-pink)">● 脂肪乳 (LIP)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="monitor-card">
+            <div class="monitor-title">全合一配方构成 (TNA COMPOSITION)</div>
+            <div class="disc-container">
+                <div class="big-disc" id="comp-disc" style="--d-glc:0%; --d-lip:0%; --d-aa:0%;">
+                    <div class="disc-center-text">
+                        <div style="font-size:0.7em; color:#9ca3af;">TOTAL VOL</div>
+                        <div style="font-size:1.2em; font-weight:bold; color:#fff;"><span id="val-vol">0</span> ml</div>
+                    </div>
+                </div>
+            </div>
+            <div class="legend-grid">
+                <div class="legend-item"><span class="dot" style="background:var(--neon-blue)"></span>糖</div>
+                <div class="legend-item"><span class="dot" style="background:var(--neon-pink)"></span>脂</div>
+                <div class="legend-item"><span class="dot" style="background:var(--neon-yellow)"></span>氨</div>
+                <div class="legend-item"><span class="dot" style="background:var(--neon-teal)"></span>电</div>
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; border-top:1px solid #374151; padding-top:10px;">
+                <div style="text-align:center;">
+                    <div style="font-size:0.7em; color:#9ca3af;">热氮比</div>
+                    <div id="val-npc-n" style="font-weight:bold; color:var(--neon-green)">-</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:0.7em; color:#9ca3af;">糖胰比</div>
+                    <div id="val-gi" style="font-weight:bold; color:var(--neon-green)">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hud-tips">
+            <div class="hud-tabs">
+                <div class="hud-tab active" onclick="switchTab(this, 'tab-1')">概述</div>
+                <div class="hud-tab" onclick="switchTab(this, 'tab-2')">能量</div>
+                <div class="hud-tab" onclick="switchTab(this, 'tab-3')">配比</div>
+                <div class="hud-tab" onclick="switchTab(this, 'tab-4')">电解质</div>
+            </div>
+            <div class="hud-content">
+                <div id="tab-1">
+                    <h4>适应症 & 禁忌</h4>
+                    <ul>
+                        <li><b style="color:#fff">适用：</b>>7天不能进食、严重胃肠功能障碍、大剂量放化疗。</li>
+                        <li><b style="color:var(--neon-red)">禁忌：</b>肠道功能正常、需PN<5天、临终、休克。</li>
+                    </ul>
+                </div>
+                <div id="tab-2" style="display:none">
+                    <h4>能量计算 (TEE)</h4>
+                    <ul>
+                        <li><b style="color:#fff">拇指法则：</b>25-30 kcal/kg/d。</li>
+                        <li>肥胖：IBW + 0.4×(实重-IBW)。</li>
+                        <li>液体：30-40 ml/kg/d (约1500-2500ml)。</li>
+                    </ul>
+                </div>
+                <div id="tab-3" style="display:none">
+                    <h4>三大营养素配比</h4>
+                    <ul>
+                        <li><b style="color:#fff">NPC：</b>占85-90%。糖脂比常用 60:40。</li>
+                        <li><b style="color:#fff">热氮比：</b>100-150 kcal : 1g N。</li>
+                        <li>1g 氮 ≈ 6.25g 蛋白质。</li>
+                    </ul>
+                </div>
+                <div id="tab-4" style="display:none">
+                    <h4>电解质与胰岛素</h4>
+                    <ul>
+                        <li><b style="color:var(--neon-teal)">钾(K)：</b>4.5-11.2g/d (<0.3%)。</li>
+                        <li><b style="color:var(--neon-teal)">钠(Na)：</b>4.5-6.0g/d。</li>
+                        <li><b style="color:var(--neon-blue)">胰岛素：</b>糖:胰岛素 ≈ 4g : 1U。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    /* =========================================
+       1. 临床药品数据库 (Clinical Database)
+       ========================================= */
+    const DB = {
+        amino: [
+            { id: '18aa_ii', name: '18AA-II (兰尼)', aa: 0.085, n: 0.0136 }, // 8.5%
+            { id: '18aa_v', name: '18AA-V (创伤)', aa: 0.10, n: 0.016 },    // 10%
+        ],
+        glucose: [
+            { id: 'glc_50', name: '50% 葡萄糖 (50g/100ml)', glc: 0.5 },
+            { id: 'glc_10', name: '10% 葡萄糖 (10g/100ml)', glc: 0.1 },
+            { id: 'glc_5', name: '5% 葡萄糖', glc: 0.05 }
+        ],
+        lipid: [
+            { id: 'lip_struct', name: '结构脂肪乳(20%)', lip: 0.2 },
+            { id: 'lip_mct', name: 'MCT/LCT(20%)', lip: 0.2 },
+            { id: 'lip_fish', name: '鱼油脂肪乳(10%)', lip: 0.1 }
+        ],
+        additives: [
+            { id: 'kcl_15', name: '15% KCl (1.5g/10ml)', k: 1.5, na: 0, type: 'vol' },
+            { id: 'nacl_10', name: '10% NaCl (1g/10ml)', k: 0, na: 1.0, type: 'vol' },
+            { id: 'insulin', name: '普通胰岛素', type: 'unit' }
+        ]
+    };
+
+    let prescription = [];
+
+    /* =========================================
+       2. 智能计算引擎 (Logic)
+       ========================================= */
+    function autoGenerate() {
+        const w = parseFloat(document.getElementById('in-weight').value) || 60;
+        const aaF = parseFloat(document.getElementById('in-aa-factor').value);
+        const glR = parseInt(document.getElementById('in-gl-ratio').value);
+
+        // 目标计算
+        const tTEE = w * 25; // 默认25kcal/kg
+        const tAA = w * aaF;
+        const npc = tTEE - (tAA * 4);
+        
+        const glcCal = npc * (glR / 100);
+        const lipCal = npc * ((100 - glR) / 100);
+
+        const r10 = n => Math.round(n/10)*10;
+        
+        // 逆向计算体积
+        const vAA = r10(tAA / 0.085); 
+        const vLip = r10((lipCal/9) / 0.2);
+        const vGlc50 = r10((glcCal/4) / 0.5); 
+        const vGlc10 = 500; // 基础补液
+        
+        const totGlc = (vGlc50 * 0.5) + (vGlc10 * 0.1);
+        const vInsulin = Math.round(totGlc / 4); // 4:1
+
+        prescription = [
+            { cat: 'amino', id: '18aa_ii', val: vAA },
+            { cat: 'lipid', id: 'lip_struct', val: vLip },
+            { cat: 'glucose', id: 'glc_50', val: vGlc50 },
+            { cat: 'glucose', id: 'glc_10', val: vGlc10 },
+            { cat: 'additives', id: 'kcl_15', val: 30 }, 
+            { cat: 'additives', id: 'nacl_10', val: 45 },
+            { cat: 'additives', id: 'insulin', val: vInsulin }
+        ];
+        renderDrugs();
+    }
+
+    function calculateAll() {
+        const w = parseFloat(document.getElementById('in-weight').value) || 60;
+        const targetTEE = w * 25;
+        const targetAA = w * parseFloat(document.getElementById('in-aa-factor').value);
+
+        let tVol=0, tAA=0, tN=0, tGlc=0, tLip=0, tK=0, tNa=0, tIns=0;
+        // 体积统计用于大圆盘
+        let vG=0, vL=0, vA=0, vE=0;
+
+        prescription.forEach(p => {
+            const d = DB[p.cat].find(x=>x.id===p.id);
+            if(!d) return;
+            const v = p.val;
+            
+            if(d.type !== 'unit') tVol += v;
+
+            // 统计体积
+            if(p.cat==='glucose') vG += v;
+            if(p.cat==='lipid') vL += v;
+            if(p.cat==='amino') vA += v;
+            if(p.cat==='additives' && d.type!=='unit') vE += v;
+
+            // 统计成分
+            if(p.cat==='amino') { tAA+=v*d.aa; tN+=v*d.n; }
+            if(p.cat==='glucose') tGlc+=v*d.glc;
+            if(p.cat==='lipid') tLip+=v*d.lip;
+            if(p.cat==='additives') {
+                if(d.k) tK+=v*d.k/10.0;
+                if(d.na) tNa+=v*d.na/10.0;
+                if(d.id==='insulin') tIns+=v;
+            }
+        });
+
+        const kGlc = tGlc * 4;
+        const kLip = tLip * 9;
+        const npc = kGlc + kLip;
+        const tee = npc + (tAA * 4);
+
+        // --- 更新 UI ---
+
+        // 1. 双环仪表盘 (Double Ring Gauge)
+        updateGauge('ring-tee', tee, targetTEE, 'val-tee-act', 'val-tee-target');
+        updateGauge('ring-aa', tAA, targetAA, 'val-aa-act', 'val-aa-target', 1);
+
+        // 2. 糖脂比 (NPC Ratio Bar)
+        let rG = 50, rL = 50;
+        if(npc > 0) {
+            rG = (kGlc / npc) * 100;
+            rL = 100 - rG;
+        }
+        document.getElementById('bar-glc').style.width = rG + '%';
+        document.getElementById('bar-lip').style.width = rL + '%';
+        document.getElementById('txt-ratio-val').innerText = `${Math.round(rG)} : ${Math.round(rL)}`;
+
+        // 3. 全成分大圆盘 (Composition Disc)
+        const totV = vG + vL + vA + vE;
+        if(totV > 0) {
+            const pG = (vG/totV)*100;
+            const pL = (vL/totV)*100;
+            const pA = (vA/totV)*100;
+            
+            const disc = document.getElementById('comp-disc');
+            disc.style.setProperty('--d-glc', pG + '%');
+            disc.style.setProperty('--d-lip', (pG+pL) + '%');
+            disc.style.setProperty('--d-aa', (pG+pL+pA) + '%');
+        }
+        document.getElementById('val-vol').innerText = tVol.toFixed(0);
+
+        // 4. 指标
+        const rn = tN>0 ? (npc/tN).toFixed(0) : '-';
+        document.getElementById('val-npc-n').innerText = rn + ' : 1';
+        
+        const ri = tIns>0 ? (tGlc/tIns).toFixed(1) : '-';
+        document.getElementById('val-gi').innerText = ri + ' : 1';
+    }
+
+    // 仪表盘动画逻辑
+    function updateGauge(elId, actual, target, txtActId, txtTgtId, isFloat=0) {
+        document.getElementById(txtActId).innerText = isFloat ? actual.toFixed(1) : actual.toFixed(0);
+        document.getElementById(txtTgtId).innerText = isFloat ? target.toFixed(1) : target.toFixed(0);
+        
+        // 计算百分比，最大不超过100%（视觉上，否则会重叠太丑）
+        // 如果想让红色超过一圈，需要更复杂的逻辑，这里简化为填满
+        let pct = target > 0 ? (actual / target) * 100 : 0;
+        if(pct > 100) pct = 100; // 封顶视觉
+        
+        const el = document.getElementById(elId);
+        // 延时一点让动画平滑
+        setTimeout(() => {
+            el.style.setProperty('--p-actual', pct + '%');
+            
+            // 变色逻辑：如果严重不足(<80%)显示黄色，超标(>110%)显示紫色？
+            // 目前保持红色为实际值，简单明了
+        }, 10);
+    }
+
+    /* =========================================
+       3. 列表渲染 (Renderer)
+       ========================================= */
+    function renderDrugs() {
+        const con = document.getElementById('drug-container');
+        con.innerHTML = '';
+        const cats = [
+            {k:'amino',n:'氨基酸'}, {k:'glucose',n:'葡萄糖'}, 
+            {k:'lipid',n:'脂肪乳'}, {k:'additives',n:'电解质/其他'}
+        ];
+
+        cats.forEach(c => {
+            const items = prescription.filter(p => p.cat === c.k);
+            const box = document.createElement('div');
+            box.style.marginBottom = "15px";
+            
+            // 标题
+            box.innerHTML = `<div class="drug-category">${c.n}</div>`;
+            
+            // 列表
+            items.forEach(item => {
+                const idx = prescription.indexOf(item);
+                const row = document.createElement('div');
+                row.className = 'drug-row';
+                let opts = DB[c.k].map(d=>`<option value="${d.id}" ${d.id===item.id?'selected':''}>${d.name}</option>`).join('');
+                row.innerHTML = `
+                    <select onchange="upd(${idx},'id',this.value)" style="width:100%">${opts}</select>
+                    <input type="number" value="${item.val}" oninput="upd(${idx},'val',this.value)">
+                    <span style="font-size:0.8em; color:#666;">${item.id==='insulin'?'U':'ml'}</span>
+                    <button onclick="del(${idx})" style="border:none; background:none; color:#ef4444; font-weight:bold; cursor:pointer;">×</button>
+                `;
+                box.appendChild(row);
+            });
+
+            // 添加按钮
+            const btn = document.createElement('button');
+            btn.className = 'btn-add';
+            btn.innerText = '+ 添加 ' + c.n;
+            btn.onclick = () => { prescription.push({cat:c.k, id:DB[c.k][0].id, val:0}); renderDrugs(); };
+            box.appendChild(btn);
+            
+            con.appendChild(box);
+        });
+        calculateAll();
+    }
+
+    function upd(i, k, v) {
+        if(k==='val') prescription[i].val = parseFloat(v)||0;
+        else prescription[i].id = v;
+        calculateAll();
+    }
+    function del(i) { prescription.splice(i,1); renderDrugs(); }
+    function resetDrugs() { prescription=[]; renderDrugs(); }
+
+    function switchTab(el, id) {
+        document.querySelectorAll('.hud-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        document.querySelectorAll('.hud-content > div').forEach(d => d.style.display='none');
+        document.getElementById(id).style.display='block';
+    }
+
+    // 初始化
+    renderDrugs();
+</script>
+</body>
+</html>
